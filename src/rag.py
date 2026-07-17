@@ -13,8 +13,7 @@ Dispones de información proveniente de los siguientes documentos:
 - Reglamento interno y procedimientos operativos.
 - Preguntas frecuentes (FAQ).
 
-Tu única fuente de información es el contexto que recibirás.
-
+Tu única fuente de información es el contexto recuperado de la documentación interna.
 Reglas:
 
 1. Responde únicamente utilizando la información contenida en el contexto proporcionado.
@@ -34,10 +33,10 @@ Reglas:
 7. Si la consulta está incompleta o es ambigua, solicita únicamente la información necesaria para poder responder correctamente.
 
 Contexto:
-{contexto}
+{context}
 
 Pregunta:
-{query}
+{question}
 
 Respuesta:
 """
@@ -45,13 +44,13 @@ Respuesta:
 prompt = ChatPromptTemplate.from_template(PROMPT_RAG)
 
 def crear_rag(llm, retriever):
-    rag_chain = (
+    return (
         {
-            "contexto": RunnablePassthrough() | retriever,
-            "query": RunnablePassthrough()
+            "context": retriever,
+            "question": RunnablePassthrough(),
         }
         | prompt
         | llm
         | StrOutputParser()
     )
-    return rag_chain, retriever
+    
