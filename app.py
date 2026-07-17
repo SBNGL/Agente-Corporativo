@@ -37,7 +37,7 @@ def inicializar_rag():
 
     llm = obtener_llm()
 
-    documentos = cargar_documentos("datos/pdf")
+    documentos = cargar_documentos("datos/PDF")
 
     chunks = dividir_documentos(documentos)
 
@@ -58,9 +58,11 @@ def inicializar_rag():
     return rag, retriever
 
 
-st.title("✅ Render funciona")
-st.success("La aplicación inició correctamente.")
-st.stop()
+try:
+    rag, retriever = inicializar_rag()
+except Exception as e:
+    st.error(f"Error al inicializar la aplicación:\n\n{e}")
+    raise
 
 
 # Historial del chat

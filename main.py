@@ -7,7 +7,7 @@ from src.rag import crear_rag
 def main():
     llm = obtener_llm()
 
-    documentos = cargar_documentos("datos/pdf")
+    documentos = cargar_documentos("datos/PDF")
     chunks = dividir_documentos(documentos)
     modelo_embeddings = obtener_embeddings()
     vectorstore = crear_vectorstore(chunks, modelo_embeddings)
