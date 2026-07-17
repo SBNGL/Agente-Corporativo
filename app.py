@@ -58,11 +58,9 @@ def inicializar_rag():
     return rag, retriever
 
 
-try:
-    rag, retriever = inicializar_rag()
-except Exception as e:
-    st.error(f"Error al inicializar la aplicación:\n\n{e}")
-    raise
+st.title("✅ Render funciona")
+st.success("La aplicación inició correctamente.")
+st.stop()
 
 
 # Historial del chat
