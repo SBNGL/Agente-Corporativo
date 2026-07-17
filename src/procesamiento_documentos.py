@@ -1,12 +1,9 @@
 from pathlib import Path
+import os
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-import os
 from langchain_community.vectorstores import FAISS
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 def cargar_documentos(ruta):
@@ -22,11 +19,11 @@ def cargar_documentos(ruta):
 
     return documentos
 
-def  dividir_documentos(documentos):
+def dividir_documentos(documentos):
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=100,
+        chunk_size=1500,
+        chunk_overlap=250,
     )
 
     chunks = splitter.split_documents(documentos)
@@ -35,20 +32,43 @@ def  dividir_documentos(documentos):
 
 def obtener_embeddings():
     return HuggingFaceEmbeddings(
-        model_name="BAAI/bge-m3"
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
     
 def crear_vectorstore(chunks, modelo_embeddings):
-    vectorstore = FAISS.from_documents(
-        chunks,
-        modelo_embeddings
-    )
+
+    ruta_faiss = "datos/faiss"
+
+    if os.path.exists(ruta_faiss):
+
+        print("Cargando índice FAISS...")
+
+        vectorstore = FAISS.load_local(
+            ruta_faiss,
+            modelo_embeddings,
+            allow_dangerous_deserialization=True
+        )
+
+    else:
+
+        print("Creando vectorstore...")
+
+        vectorstore = FAISS.from_documents(
+            chunks,
+            modelo_embeddings
+        )
+
+        vectorstore.save_local(ruta_faiss)
+
+        print("Vectorstore creado y guardado.")
+
     return vectorstore
 
 def crear_retriever(vectorstore):
-    retriever = vectorstore.as_retriever(
-    search_type="similarity_score_threshold",
-    search_kwargs={"score_threshold": 0.3, "k": 4}
-)
-    return retriever
+        
+    return vectorstore.as_retriever(
+        search_kwargs={
+            "k": 6
+        },
+     )
