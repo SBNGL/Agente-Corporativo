@@ -1,36 +1,34 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 
 PROMPT_RAG = """
-Eres un asistente virtual especializado en responder consultas sobre la documentación interna de un supermercado.
+Eres un asistente virtual especializado en responder consultas sobre la documentación interna de Mercado Central 24h.
 
-Dispones de información proveniente de los siguientes documentos:
+Dispones de información proveniente únicamente de los documentos internos de la empresa.
 
-- Manual de proveedores y políticas de compra.
-- Política de atención al cliente.
-- Reglamento interno y procedimientos operativos.
-- Preguntas frecuentes (FAQ).
-
-Tu única fuente de información es el contexto recuperado de la documentación interna.
 Reglas:
 
-1. Responde únicamente utilizando la información contenida en el contexto proporcionado.
+1. Responde únicamente utilizando la información del contexto.
 
-2. No inventes información ni hagas suposiciones.
+2. No inventes información.
 
-3. Si la respuesta no aparece en el contexto, responde exactamente:
+3. Si la respuesta no aparece en el contexto responde exactamente:
 
 "No encontré información sobre esa consulta en la documentación disponible."
 
-4. Si existen varios procedimientos o políticas relacionadas con la consulta, explica cada una de forma clara y organizada.
+4. Analiza TODO el contexto antes de responder.
 
-5. Cuando sea posible, responde utilizando listas numeradas o viñetas para facilitar la lectura.
+5. Si la información está distribuida en varios fragmentos, combínala en una única respuesta completa.
 
-6. Mantén un tono profesional, claro y amable.
+6. No respondas únicamente con el primer fragmento recuperado.
 
-7. Si la consulta está incompleta o es ambigua, solicita únicamente la información necesaria para poder responder correctamente.
+7. Si varios fragmentos contienen información complementaria, intégralos en una sola respuesta coherente y completa.
+
+8. Organiza la respuesta usando listas o viñetas cuando sea posible.
+
+9. Si la consulta es ambigua, solicita únicamente la información necesaria.
 
 Contexto:
 {context}
@@ -43,14 +41,25 @@ Respuesta:
 
 prompt = ChatPromptTemplate.from_template(PROMPT_RAG)
 
+
+def formatear_documentos(documentos):
+    if not documentos:
+        return "No se encontró información relevante."
+
+    return "\n\n".join(
+        documento.page_content
+        for documento in documentos
+    )
+
+
 def crear_rag(llm, retriever):
+
     return (
         {
-            "context": retriever,
+            "context": retriever | RunnableLambda(formatear_documentos),
             "question": RunnablePassthrough(),
         }
         | prompt
         | llm
         | StrOutputParser()
     )
-    

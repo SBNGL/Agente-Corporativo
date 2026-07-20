@@ -65,10 +65,13 @@ def crear_vectorstore(chunks, modelo_embeddings):
 
     return vectorstore
 
+
 def crear_retriever(vectorstore):
-        
     return vectorstore.as_retriever(
+        search_type="mmr",
         search_kwargs={
-            "k": 6
-        },
-     )
+            "k": 6,
+            "fetch_k": 12,
+            "lambda_mult": 0.7
+        }
+    )
