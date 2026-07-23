@@ -49,6 +49,27 @@ div[data-testid="stSidebar"] {
     backdrop-filter: blur(10px);
 }
 
+.suggestions-panel {
+    padding: 1.4rem;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.42) 0%, rgba(15, 23, 42, 0.72) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+    height: 100%;
+}
+
+.suggestion-chip {
+    display: inline-block;
+    padding: 0.45rem 0.8rem;
+    margin: 0.3rem 0.35rem 0.3rem 0;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #cbd5e1;
+    font-size: 0.88rem;
+}
+
 .gradient-title {
     font-size: 2.8rem;
     font-weight: 800;
@@ -75,6 +96,7 @@ div[data-testid="stChatInput"] {
     backdrop-filter: blur(15px) !important;
     box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.5) !important;
     padding: 8px !important;
+    margin-top: 1rem !important;
     margin-bottom: 10px !important;
     transition: border-color 0.3s ease;
 }
@@ -204,7 +226,6 @@ div[data-testid="stSidebar"] button:hover {
 st.markdown(custom_css, unsafe_allow_html=True)
 
 
-@st.cache_resource
 def inicializar_rag():
     llm = obtener_llm()
     documentos = cargar_documentos("datos/PDF")
@@ -244,9 +265,6 @@ except Exception as e:
 # Inicializar variables de estado
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-if "query_to_submit" not in st.session_state:
-    st.session_state.query_to_submit = None
 
 
 # Panel lateral (Sidebar)
@@ -291,42 +309,34 @@ with st.sidebar:
     # Botón para borrar historial
     if st.button("🧹 Limpiar Historial de Chat", use_container_width=True):
         st.session_state.messages = []
-        st.session_state.query_to_submit = None
         st.rerun()
 
 
 # Cabecera principal o mini-cabecera según el estado del chat
 if not st.session_state.messages:
-    st.markdown("""
-    <div class="title-container">
-        <div class="gradient-title">🛒 Asistente Inteligente</div>
-        <div class="subtitle">Pregúntame sobre horarios, políticas de proveedores, atención al cliente, reglamento interno y procedimientos operativos de Mercado Central 24h.</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Cuadrícula de Sugerencias
-    st.markdown("<h3 style='margin-bottom: 1.2rem; color: #a855f7; font-weight: 600; font-size: 1.3rem;'>💡 Temas de Consulta Rápida</h3>", unsafe_allow_html=True)
-    
-    # 2x2 grid of cards
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🕒 Horarios y Operación\nVer horarios generales y recepción de proveedores.", key="btn_horarios"):
-            st.session_state.query_to_submit = "¿Cuáles son los horarios de atención general y recepción de mercancías?"
-            st.rerun()
-            
-        if st.button("👤 Atención al Cliente\nProcedimiento para quejas y devoluciones.", key="btn_atencion"):
-            st.session_state.query_to_submit = "¿Cuáles son las políticas de atención al cliente y el proceso para devoluciones?"
-            st.rerun()
-            
-    with col2:
-        if st.button("🚚 Políticas de Proveedores\nCondiciones de pago, entrega y registro.", key="btn_proveedores"):
-            st.session_state.query_to_submit = "¿Cuáles son los requisitos de entrega de mercadería y políticas de pago para proveedores?"
-            st.rerun()
-            
-        if st.button("📜 Reglamento Interno\nNormas de seguridad, comportamiento y sanciones.", key="btn_reglamento"):
-            st.session_state.query_to_submit = "¿Cuáles son las normas de seguridad fundamentales y el régimen de sanciones del reglamento interno?"
-            st.rerun()
-            
+    col_title, col_suggestions = st.columns([1.7, 1.0])
+
+    with col_title:
+        st.markdown("""
+        <div class="title-container">
+            <div class="gradient-title">🛒 Asistente Inteligente</div>
+            <div class="subtitle">Pregúntame sobre horarios, políticas de proveedores, atención al cliente, reglamento interno y procedimientos operativos de Mercado Central 24h.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_suggestions:
+        st.markdown("""
+        <div class="suggestions-panel">
+            <div style="font-size: 1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.9rem;">💡 Preguntas que puedes hacer</div>
+            <div class="suggestion-chip">¿Cuáles son los horarios de atención?</div>
+            <div class="suggestion-chip">¿Qué políticas de devoluciones hay?</div>
+            <div class="suggestion-chip">¿Cuáles son los requisitos de entrega?</div>
+            <div class="suggestion-chip">¿Qué normas de seguridad aplican?</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 1.25rem;'></div>", unsafe_allow_html=True)
+
 else:
     # Mini Header when chat has started
     st.markdown("""
@@ -348,16 +358,14 @@ for mensaje in st.session_state.messages:
                     st.markdown(f"• **{nombre}** — Página {pagina}")
 
 
-# Verificar si hay una pregunta pendiente del clic en tarjetas
+# Recibir entrada del usuario
 pregunta = None
-if "query_to_submit" in st.session_state and st.session_state.query_to_submit:
-    pregunta = st.session_state.query_to_submit
-    st.session_state.query_to_submit = None
+with st.form(key="chat_form", clear_on_submit=True):
+    user_question = st.text_input("Escribe tu pregunta...", key="chat_text_input")
+    submitted = st.form_submit_button("Enviar")
 
-# Recibir entrada del usuario (si no fue lanzada por sugerencia)
-chat_input_val = st.chat_input("Escribe tu pregunta...")
-if chat_input_val:
-    pregunta = chat_input_val
+if submitted and user_question:
+    pregunta = user_question.strip()
 
 
 # Procesar nueva pregunta si existe

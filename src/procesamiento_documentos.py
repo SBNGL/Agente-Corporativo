@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import shutil
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -22,8 +23,8 @@ def cargar_documentos(ruta):
 def dividir_documentos(documentos):
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1500,
-        chunk_overlap=250,
+        chunk_size=1200,
+        chunk_overlap=150,
     )
 
     chunks = splitter.split_documents(documentos)
@@ -32,7 +33,7 @@ def dividir_documentos(documentos):
 
 def obtener_embeddings():
     return HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
+        model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     )
 
     
@@ -41,37 +42,28 @@ def crear_vectorstore(chunks, modelo_embeddings):
     ruta_faiss = "datos/faiss"
 
     if os.path.exists(ruta_faiss):
+        shutil.rmtree(ruta_faiss)
+        print("Índice FAISS anterior descartado. Reconstruyendo...")
 
-        print("Cargando índice FAISS...")
+    print("Creando vectorstore...")
 
-        vectorstore = FAISS.load_local(
-            ruta_faiss,
-            modelo_embeddings,
-            allow_dangerous_deserialization=True
-        )
+    vectorstore = FAISS.from_documents(
+        chunks,
+        modelo_embeddings
+    )
 
-    else:
+    vectorstore.save_local(ruta_faiss)
 
-        print("Creando vectorstore...")
-
-        vectorstore = FAISS.from_documents(
-            chunks,
-            modelo_embeddings
-        )
-
-        vectorstore.save_local(ruta_faiss)
-
-        print("Vectorstore creado y guardado.")
+    print("Vectorstore creado y guardado.")
 
     return vectorstore
 
 
 def crear_retriever(vectorstore):
     return vectorstore.as_retriever(
-        search_type="mmr",
+        search_type="similarity",
         search_kwargs={
-            "k": 6,
-            "fetch_k": 12,
-            "lambda_mult": 0.7
+            "k": 5,
+            "fetch_k": 10
         }
     )
