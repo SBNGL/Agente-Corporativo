@@ -225,6 +225,7 @@ div[data-testid="stSidebar"] button:hover {
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
+@st.cache_resource(show_spinner=False)
 
 def inicializar_rag():
     llm = obtener_llm()
